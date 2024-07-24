@@ -47,7 +47,7 @@ Edit `docker-compose.yml` to provide your network configuration:
 ```yml
 networks:
   beegfs:
-    driver: macvlan
+    driver: macvlan # wifi interfaces are not suitable for macvlan, use ethernet for host machine
     driver_opts:
       parent: # interface name, for example: ens33
     ipam:
@@ -97,7 +97,7 @@ The resulting file should look like this:
 ```yml
 networks:
   beegfs:
-    driver: macvlan
+    driver: macvlan # wifi interfaces are not suitable for macvlan, use ethernet for host machine
     driver_opts:
       parent: ens33
     ipam:
@@ -168,6 +168,40 @@ docker inspect docker-beegfs-demo_beegfs
 ```
 
 Now you can connect to the management node from another machine using its ip address.
+
+## Setup on non-virtual (physical) machine (Ubuntu 22.04) && Potential troubleshooting:
+At first, you should follow previously mentioned instructions. Whether there are problems still, you can try the following fixes.
+
+There are few tricky moments that aren’t mentioned here and very poorly mentioned on the internet. The thing is, the physical machine with docker **MUST** be connected via ethernet. Whether it is connected via wifi, it is likely that the addresses of management/metadata/storage nodes couldn’t be pinged.
+
+Another important note is that the client-machine (M1 macOS Sonoma in my case) **MUST NOT** be connected via ethernet, but with wifi instead. For some reason, when both computers use ethernet, the docker is inaccessible.
+
+Lastly, the output of `ip -o -f inet ` which is used to find the subnet, will return you, for example: `192.168.1.26/24 `. If nothing works, you might try the following in docker-compose.yml (subnet) `192.168.1.0/24 `.
+
+## Manual images rebuild
+Whether you need to edit the beegfs-[SERVICE].conf file and apply the changes, you must do some additional steps rather than only editing the conf files:
+
+1.	Stop the container:
+```sh
+docker-compose down
+```
+2.	Check the existing images ID:
+```sh
+docker images
+```
+3.	Delete all related images:
+```sh
+docker images rmi -f [IMAGE_ID]
+```
+4.	In the directory where your docker-beegfs.yml file is located, run:
+```sh
+docker-compose build
+```
+5.	Run the docker
+```sh
+docker-compose up
+```
+
 
 ## How to add more storage nodes
 Currently, `docker-compose.yml` provides 2 services that act as storage nodes: `storage1` and `storage2`.
